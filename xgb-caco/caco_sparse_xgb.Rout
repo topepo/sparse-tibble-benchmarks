@@ -33,7 +33,7 @@ Type 'q()' to quit R.
 ✖ ggplot2::is.element() masks base::is.element()
 ✖ dplyr::lag()          masks stats::lag()
 ✖ recipes::step()       masks stats::step()
-• Learn how to get started at https://www.tidymodels.org/start/
+• Use suppressPackageStartupMessages() to eliminate package startup messages
 > library(bonsai)
 > library(sparsevctrs)
 > library(QSARdata)
@@ -122,9 +122,18 @@ Loading required package: bench
 +   ) %>%
 +   filter(ppid == worker_ppid | pid == worker_ppid)
 > 
-> mtr_sprs <- xgb_mtr %>% mutate(encoding = "sparse")
+> xgb_mtr_sprs <- xgb_mtr %>% mutate(encoding = "sparse")
 > 
-> save(xgb_prof_sprs, analysis_time_sprs, mtr_sprs, file = "xgb-caco/sparse.RData")
+> xgb_time_sprs <- 
++   analysis_time_sprs %>% 
++   enframe() %>% 
++   mutate(
++     encoding = "sparse",
++     model = "xgboost"
++   ) %>% 
++   filter(name == "elapsed")
+> 
+> save(xgb_prof_sprs, xgb_time_sprs, xgb_mtr_sprs, file = "xgb-caco/sparse.RData")
 > 
 > # ------------------------------------------------------------------------------
 > 
@@ -238,4 +247,4 @@ Loading required package: bench
 + }
 > proc.time()
    user  system elapsed 
-459.354 103.560 377.605 
+457.105 103.012 375.558 

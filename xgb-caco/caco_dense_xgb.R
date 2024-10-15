@@ -46,9 +46,18 @@ xgb_prof_dns<-
   ) %>%
   filter(ppid == worker_ppid | pid == worker_ppid)
 
-mtr_dns <- xgb_mtr %>% mutate(encoding = "dense")
+xgb_mtr_dns <- xgb_mtr %>% mutate(encoding = "dense")
 
-save(xgb_prof_dns, analysis_time_dns, file = "xgb-caco/dense.RData")
+xgb_time_dns <- 
+  analysis_time_dns %>% 
+  enframe() %>% 
+  mutate(
+    encoding = "dense",
+    model = "xgboost"
+  ) %>% 
+  filter(name == "elapsed")
+
+save(xgb_prof_dns, xgb_time_dns, xgb_mtr_dns, file = "xgb-caco/dense.RData")
 
 # ------------------------------------------------------------------------------
 

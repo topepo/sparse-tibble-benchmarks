@@ -86,9 +86,18 @@ xgb_prof_sprs<-
   ) %>%
   filter(ppid == worker_ppid | pid == worker_ppid)
 
-mtr_sprs <- xgb_mtr %>% mutate(encoding = "sparse")
+xgb_mtr_sprs <- xgb_mtr %>% mutate(encoding = "sparse")
 
-save(xgb_prof_sprs, analysis_time_sprs, mtr_sprs, file = "xgb-caco/sparse.RData")
+xgb_time_sprs <- 
+  analysis_time_sprs %>% 
+  enframe() %>% 
+  mutate(
+    encoding = "sparse",
+    model = "xgboost"
+  ) %>% 
+  filter(name == "elapsed")
+
+save(xgb_prof_sprs, xgb_time_sprs, xgb_mtr_sprs, file = "xgb-caco/sparse.RData")
 
 # ------------------------------------------------------------------------------
 
