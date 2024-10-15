@@ -7,17 +7,17 @@ caco_rs <- vfold_cv(caco_tr, strata = Class)
 # ------------------------------------------------------------------------------
 
 mod_spec <- 
-  boost_tree(trees = 500, learn_rate = 0.1) %>% 
-  set_mode("classification") %>% 
-  set_engine("xgboost")
+  multinom_reg(penalty = 0.01, mixture = 1.0) %>% 
+  set_engine("glmnet")
 
-mod_wflow <- 
-  workflow() %>% 
-  add_model(mod_spec) %>% 
-  add_variables(predictors = everything(), outcomes = Class)
+rec <- 
+  recipe(Class ~ ., data = caco_tr) %>% 
+  step_zv(all_predictors()) %>% 
+  step_normalize(all_numeric_predictors())
+
+mod_wflow <- workflow(rec, mod_spec)
 
 set.seed(610)
-mod_fit <- fit_xy(mod_spec, x = caco_tr %>% select(-Class), y = caco_tr$Class)
 mod_fit <- fit(mod_wflow, data = caco_tr)
 pred_test <- augment(mod_fit, caco_te) 
 brier_test <- pred_test %>% brier_class(Class, .pred_L, .pred_M, .pred_H)
@@ -28,6 +28,6 @@ mod_res <-
   fit_resamples(resamples = caco_rs,
                 metrics = metric_set(roc_auc, accuracy, brier_class))
 
-xgb_mtr <- collect_metrics(mod_res)
+glmnet_mtr <- collect_metrics(mod_res)
 
 

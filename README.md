@@ -8,6 +8,6 @@ Currently, there are results for xgboost and glmnet classification models.
 
 The data sets: 
 
- - `caco`: a computational chemistry data set where a three-class outcome is predicted using different molecular descriptors. The QSARdata package is the source and it contains several classes of predictors. Our analysis includes predictors most likely to benefit from sparsity: [atom pairs](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C7&q=A+novel+descriptor+based+on+atom-pair+properties&btnG= ) and [binary substructure fingerprints](https://medium.com/@santuchal/molecular-fingerprint-1693111d7b96). There are 3,796 rows and 6,397 predictors in the data set. 
+ - `caco`: a computational chemistry data set where a three-class outcome is predicted using different molecular descriptors. The [QSARdata](https://github.com/cran/QSARdata) package is the source and it contains several classes of predictors. Our analysis includes predictors most likely to benefit from sparsity: [atom pairs](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C7&q=A+novel+descriptor+based+on+atom-pair+properties&btnG= ) and [binary substructure fingerprints](https://medium.com/@santuchal/molecular-fingerprint-1693111d7b96). There are 3,796 rows and 6,397 predictors in the data set. 
  
 

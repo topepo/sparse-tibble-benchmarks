@@ -69,26 +69,26 @@ caco_sprs <- convert_to_sparse(caco_tbl, threshold = 25)
 
 caco_data <- caco_sprs
 
-xgb_prof_sprs <- syrup(
+glmnet_prof_sprs <- syrup(
   analysis_time_sprs <- system.time(
-    source("xgb-caco/caco_xgb.R")
+    source("glmnet-caco/caco_glmnet.R")
   ),
   interval = 0.1
 )
 
 worker_ppid <- ps::ps_pid()
-xgb_prof_sprs<- 
-  xgb_prof_sprs %>% 
+glmnet_prof_sprs <- 
+  glmnet_prof_sprs %>% 
   mutate(
     encoding = "sparse",
-    model = "xgb",
+    model = "glmnet",
     rel_time = difftime(time, min(time))
   ) %>%
   filter(ppid == worker_ppid | pid == worker_ppid)
 
-mtr_sprs <- xgb_mtr %>% mutate(encoding = "sparse")
+mtr_sprs <- glmnet_mtr %>% mutate(encoding = "sparse")
 
-save(xgb_prof_sprs, analysis_time_sprs, mtr_sprs, file = "xgb-caco/sparse.RData")
+save(glmnet_prof_sprs, analysis_time_sprs, mtr_sprs, file = "glmnet-caco/sparse.RData")
 
 # ------------------------------------------------------------------------------
 

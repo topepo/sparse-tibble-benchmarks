@@ -29,26 +29,27 @@ caco_tbl <-
 
 caco_data <- caco_tbl
 
-xgb_prof_dns <- syrup(
+glmnet_prof_dns <- syrup(
   analysis_time_dns <- system.time(
-    source("xgb-caco/caco_xgb.R")
+    source("glmnet-caco/caco_glmnet.R")
   ),
   interval = 0.1
 )
 
 worker_ppid <- ps::ps_pid()
-xgb_prof_dns<- 
-  xgb_prof_dns %>% 
+glmnet_prof_dns<- 
+  glmnet_prof_dns %>% 
   mutate(
     encoding = "dense",
-    model = "xgb",
+    model = "glmnet",
     rel_time = difftime(time, min(time))
   ) %>%
   filter(ppid == worker_ppid | pid == worker_ppid)
 
-mtr_dns <- xgb_mtr %>% mutate(encoding = "dense")
 
-save(xgb_prof_dns, analysis_time_dns, file = "xgb-caco/dense.RData")
+mtr_dns <- glmnet_mtr %>% mutate(encoding = "dense")
+
+save(glmnet_prof_dns, analysis_time_dns, mtr_dns, file = "glmnet-caco/dense.RData")
 
 # ------------------------------------------------------------------------------
 
