@@ -46,10 +46,18 @@ glmnet_prof_dns<-
   ) %>%
   filter(ppid == worker_ppid | pid == worker_ppid)
 
+glmnet_time_dns <- 
+  analysis_time_dns %>% 
+  enframe() %>% 
+  mutate(
+    encoding = "dense",
+    model = "glmnet"
+  ) %>% 
+  filter(name == "elapsed")
 
-mtr_dns <- glmnet_mtr %>% mutate(encoding = "dense")
+glmnet_mtr_dns <- glmnet_mtr %>% mutate(encoding = "dense")
 
-save(glmnet_prof_dns, analysis_time_dns, mtr_dns, file = "glmnet-caco/dense.RData")
+save(glmnet_prof_dns, glmnet_time_dns, glmnet_mtr_dns, file = "glmnet-caco/dense.RData")
 
 # ------------------------------------------------------------------------------
 

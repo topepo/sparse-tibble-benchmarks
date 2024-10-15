@@ -86,9 +86,18 @@ glmnet_prof_sprs <-
   ) %>%
   filter(ppid == worker_ppid | pid == worker_ppid)
 
-mtr_sprs <- glmnet_mtr %>% mutate(encoding = "sparse")
+glmnet_mtr_sprs <- glmnet_mtr %>% mutate(encoding = "sparse")
 
-save(glmnet_prof_sprs, analysis_time_sprs, mtr_sprs, file = "glmnet-caco/sparse.RData")
+glmnet_time_sprs <- 
+  analysis_time_sprs %>% 
+  enframe() %>% 
+  mutate(
+    encoding = "sparse",
+    model = "glmnet"
+  ) %>% 
+  filter(name == "elapsed")
+
+save(glmnet_prof_sprs, glmnet_time_sprs, glmnet_mtr_sprs, file = "glmnet-caco/sparse.RData")
 
 # ------------------------------------------------------------------------------
 

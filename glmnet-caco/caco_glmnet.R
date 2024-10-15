@@ -15,7 +15,12 @@ rec <-
   step_zv(all_predictors()) %>% 
   step_normalize(all_numeric_predictors())
 
-mod_wflow <- workflow(rec, mod_spec)
+# Avoid (for now) centering./scaling converting the data to dense
+# mod_wflow <- workflow(rec, mod_spec)
+mod_wflow <- 
+  workflow() %>% 
+  add_model(mod_spec) %>% 
+  add_variables(predictors = everything(), outcomes = Class)
 
 set.seed(610)
 mod_fit <- fit(mod_wflow, data = caco_tr)
