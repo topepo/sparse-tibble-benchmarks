@@ -18,11 +18,15 @@ load("ranger-caco/sparse.RData")
 load("glmnet-caco/dense.RData")
 load("glmnet-caco/sparse.RData")
 
+load("lgb-caco/dense.RData")
+load("lgb-caco/sparse.RData")
+
 # ------------------------------------------------------------------------------
 
 bind_rows(glmnet_prof_dns, glmnet_prof_sprs) %>% 
   bind_rows(ranger_prof_dns, ranger_prof_sprs) %>% 
   bind_rows(xgb_prof_dns, xgb_prof_sprs) %>% 
+  bind_rows(lgb_prof_dns, lgb_prof_sprs) %>% 
   mutate(rel_time = as.numeric(rel_time)) %>% 
   ggplot(aes(rel_time, rss, col = encoding)) + 
   geom_line(linewidth = 1, alpha = 3 / 4) +
