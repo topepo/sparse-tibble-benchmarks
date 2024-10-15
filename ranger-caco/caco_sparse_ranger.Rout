@@ -1,0 +1,249 @@
+
+R version 4.4.1 (2024-06-14) -- "Race for Your Life"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(tidymodels)
+── Attaching packages ────────────────────────────────────── tidymodels 1.2.0 ──
+✔ broom        1.0.7.9000     ✔ recipes      1.1.0.9000
+✔ dials        1.3.0.9000     ✔ rsample      1.2.1.9000
+✔ dplyr        1.1.4.9000     ✔ tibble       3.2.1.9032
+✔ ggplot2      3.5.1.9000     ✔ tidyr        1.3.1.9000
+✔ infer        1.0.7.9000     ✔ tune         1.2.1.9000
+✔ modeldata    1.4.0.9000     ✔ workflows    1.1.4.9000
+✔ parsnip      1.2.1.9003     ✔ workflowsets 1.1.0.9000
+✔ purrr        1.0.2.9000     ✔ yardstick    1.3.1.9000
+── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
+✖ purrr::discard()      masks scales::discard()
+✖ dplyr::filter()       masks stats::filter()
+✖ ggplot2::is.element() masks base::is.element()
+✖ dplyr::lag()          masks stats::lag()
+✖ recipes::step()       masks stats::step()
+• Dig deeper into tidy modeling with R at https://www.tmwr.org
+> library(bonsai)
+> library(sparsevctrs)
+> library(QSARdata)
+> library(lobstr)
+> library(syrup)
+Loading required package: bench
+> 
+> # ------------------------------------------------------------------------------
+> 
+> tidymodels_prefer()
+> theme_set(theme_bw())
+> options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
+> 
+> # ------------------------------------------------------------------------------
+> 
+> data(caco)
+> 
+> caco_tbl <- 
++   full_join(caco_AtomPair, caco_PipelinePilot_FP, by = "Molecule") %>% 
++   as_tibble()
+> 
+> # Add outcome
+> caco_tbl <- 
++   full_join(caco_tbl, caco_Outcome, by = "Molecule") %>% 
++   select(-Molecule) %>% 
++   mutate(Class = factor(as.character(Class), ordered = FALSE, levels = levels(Class)))
+> 
+> # ------------------------------------------------------------------------------
+> 
+> convert_to_sparse <- function(.data, threshold = 25, exclude = "class", verbose = FALSE) {
++   if (verbose) {
++     cli::cli_inform("Initial size: {format(lobstr::obj_size(.data))}")
++   }
++   num_vals <- map_int(.data, vctrs::vec_unique_count)
++   col_types <- map_chr(.data, ~ typeof(.x))
++   # fun fact typeof(factor) == "integer" yay!
++   convertable <- map_lgl(.data, ~ is.numeric(.x) | is.logical(.x) | is.character(.x))
++   
++   rm_cols <- names(num_vals) %in% exclude | !convertable
++   num_vals <- num_vals[!rm_cols]
++   col_types <- col_types[!rm_cols]
++   
++   cols_to_convert <- names(num_vals)[num_vals <= threshold]
++   types_to_convert <- col_types[num_vals <= threshold]
++   
++   tbl <- table(types_to_convert)
++   type_count <- paste0(names(tbl), " (", format(tbl, big.mark = ","), ")")
++   
++   if (verbose) {
++     cli::cli_inform("Columns to convert: {type_count}")
++   }
++   
++   for (.col in cols_to_convert) {
++     if (typeof(.data[[.col]]) == "integer") {
++       .data[[.col]] <- as_sparse_integer(.data[[.col]])
++     } else if (typeof(.data[[.col]]) == "double") {
++       .data[[.col]] <- as_sparse_double(.data[[.col]])
++     }
++   }
++   if (verbose) {
++     cli::cli_inform("Final size: {format(lobstr::obj_size(.data))}")
++   }
++   .data
++ }
+> 
+> caco_sprs <- convert_to_sparse(caco_tbl, threshold = 25)
+> 
+> # ------------------------------------------------------------------------------
+> 
+> caco_data <- caco_sprs
+> 
+> ranger_prof_sprs <- syrup(
++   analysis_time_sprs <- system.time(
++     source("ranger-caco/caco_ranger.R")
++   ),
++   interval = 0.1
++ )
+> 
+> worker_ppid <- ps::ps_pid()
+> ranger_prof_sprs<- 
++   ranger_prof_sprs %>% 
++   mutate(
++     encoding = "sparse",
++     model = "ranger",
++     rel_time = difftime(time, min(time))
++   ) %>%
++   filter(ppid == worker_ppid | pid == worker_ppid)
+> 
+> ranger_mtr_sprs <- ranger_mtr %>% mutate(encoding = "sparse")
+> 
+> ranger_time_sprs <- 
++   analysis_time_sprs %>% 
++   enframe() %>% 
++   mutate(
++     encoding = "sparse",
++     model = "ranger"
++   ) %>% 
++   filter(name == "elapsed")
+> 
+> save(ranger_prof_sprs, ranger_time_sprs, ranger_mtr_sprs, file = "ranger-caco/sparse.RData")
+> 
+> # ------------------------------------------------------------------------------
+> 
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 (2024-06-14)
+ os       macOS Sonoma 14.7
+ system   aarch64, darwin20
+ ui       X11
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/New_York
+ date     2024-10-15
+ pandoc   3.1.11 @ /opt/homebrew/bin/pandoc
+
+─ Packages ───────────────────────────────────────────────────────────────────
+ package      * version    date (UTC) lib source
+ backports      1.5.0      2024-05-23 [1] CRAN (R 4.4.0)
+ bench        * 1.1.3      2023-05-04 [1] CRAN (R 4.4.0)
+ bonsai       * 0.3.1      2024-07-23 [1] CRAN (R 4.4.0)
+ broom        * 1.0.7.9000 2024-10-11 [1] Github (tidymodels/broom@7fa2648)
+ cachem         1.1.0      2024-05-16 [1] CRAN (R 4.4.0)
+ callr          3.7.6      2024-03-25 [1] CRAN (R 4.4.0)
+ class          7.3-22     2023-05-03 [2] CRAN (R 4.4.1)
+ cli            3.6.3      2024-06-21 [1] CRAN (R 4.4.0)
+ codetools      0.2-20     2024-03-31 [2] CRAN (R 4.4.1)
+ colorspace     2.1-1      2024-07-26 [1] CRAN (R 4.4.0)
+ conflicted     1.2.0      2023-02-01 [1] CRAN (R 4.4.0)
+ data.table     1.15.4     2024-03-30 [1] CRAN (R 4.4.0)
+ dials        * 1.3.0.9000 2024-10-11 [1] Github (tidymodels/dials@e2465f6)
+ DiceDesign     1.10       2023-12-07 [1] CRAN (R 4.4.0)
+ digest         0.6.36     2024-06-23 [1] CRAN (R 4.4.0)
+ dplyr        * 1.1.4.9000 2024-10-11 [1] Github (tidyverse/dplyr@e4e9a29)
+ fansi          1.0.6      2023-12-08 [1] CRAN (R 4.4.0)
+ fastmap        1.2.0      2024-05-15 [1] CRAN (R 4.4.0)
+ foreach        1.5.2      2022-02-02 [1] CRAN (R 4.4.0)
+ furrr          0.3.1      2022-08-15 [1] CRAN (R 4.4.0)
+ future         1.34.0     2024-07-29 [1] CRAN (R 4.4.0)
+ future.apply   1.11.2     2024-03-28 [1] CRAN (R 4.4.0)
+ generics       0.1.3      2022-07-05 [1] CRAN (R 4.4.0)
+ ggplot2      * 3.5.1.9000 2024-10-11 [1] Github (tidyverse/ggplot2@ddd207e)
+ globals        0.16.3     2024-03-08 [1] CRAN (R 4.4.0)
+ glue           1.7.0      2024-01-09 [1] CRAN (R 4.4.0)
+ gower          1.0.1      2022-12-22 [1] CRAN (R 4.4.0)
+ GPfit          1.0-8      2019-02-08 [1] CRAN (R 4.4.0)
+ gtable         0.3.5      2024-04-22 [1] CRAN (R 4.4.0)
+ hardhat        1.4.0.9002 2024-09-24 [1] Github (tidymodels/hardhat@278633a)
+ infer        * 1.0.7.9000 2024-10-11 [1] Github (tidymodels/infer@288542b)
+ ipred          0.9-15     2024-07-18 [1] CRAN (R 4.4.0)
+ iterators      1.0.14     2022-02-05 [1] CRAN (R 4.4.0)
+ lattice        0.22-6     2024-03-20 [2] CRAN (R 4.4.1)
+ lava           1.8.0      2024-03-05 [1] CRAN (R 4.4.0)
+ lhs            1.2.0      2024-06-30 [1] CRAN (R 4.4.0)
+ lifecycle      1.0.4      2023-11-07 [1] CRAN (R 4.4.0)
+ listenv        0.9.1      2024-01-29 [1] CRAN (R 4.4.0)
+ lobstr       * 1.1.2      2022-06-22 [1] CRAN (R 4.4.0)
+ lubridate      1.9.3      2023-09-27 [1] CRAN (R 4.4.0)
+ magrittr       2.0.3      2022-03-30 [1] CRAN (R 4.4.0)
+ MASS           7.3-61     2024-06-13 [1] CRAN (R 4.4.0)
+ Matrix         1.7-0      2024-04-26 [2] CRAN (R 4.4.1)
+ memoise        2.0.1      2021-11-26 [1] CRAN (R 4.4.0)
+ modeldata    * 1.4.0.9000 2024-10-14 [1] local
+ munsell        0.5.1      2024-04-01 [1] CRAN (R 4.4.0)
+ nnet           7.3-19     2023-05-03 [2] CRAN (R 4.4.1)
+ parallelly     1.38.0     2024-07-27 [1] CRAN (R 4.4.0)
+ parsnip      * 1.2.1.9003 2024-10-11 [1] Github (tidymodels/parsnip@297320e)
+ pillar         1.9.0      2023-03-22 [1] CRAN (R 4.4.0)
+ pkgconfig      2.0.3      2019-09-22 [1] CRAN (R 4.4.0)
+ processx       3.8.4      2024-03-16 [1] CRAN (R 4.4.0)
+ prodlim        2024.06.25 2024-06-24 [1] CRAN (R 4.4.0)
+ ps             1.7.7      2024-07-02 [1] CRAN (R 4.4.0)
+ purrr        * 1.0.2.9000 2024-10-11 [1] Github (tidyverse/purrr@700ce19)
+ QSARdata     * 1.3        2013-07-16 [1] CRAN (R 4.4.0)
+ R6             2.5.1      2021-08-19 [1] CRAN (R 4.4.0)
+ ranger       * 0.16.0     2023-11-12 [1] CRAN (R 4.4.0)
+ Rcpp           1.0.13     2024-07-17 [1] CRAN (R 4.4.0)
+ recipes      * 1.1.0.9000 2024-10-11 [1] Github (tidymodels/recipes@3181a7e)
+ rlang          1.1.4      2024-06-04 [1] CRAN (R 4.4.0)
+ rpart          4.1.23     2023-12-05 [1] CRAN (R 4.4.0)
+ rsample      * 1.2.1.9000 2024-10-04 [1] Github (tidymodels/rsample@f799dba)
+ rstudioapi     0.16.0     2024-03-24 [1] CRAN (R 4.4.0)
+ scales       * 1.3.0      2023-11-28 [1] CRAN (R 4.4.0)
+ sessioninfo    1.2.2      2021-12-06 [1] CRAN (R 4.4.0)
+ sparsevctrs  * 0.1.0.9002 2024-09-30 [1] Github (r-lib/sparsevctrs@b29b723)
+ survival       3.7-0      2024-06-05 [1] CRAN (R 4.4.0)
+ syrup        * 0.0.0.9000 2024-07-03 [1] Github (simonpcouch/syrup@0a8d131)
+ tibble       * 3.2.1.9032 2024-10-11 [1] Github (tidyverse/tibble@d3ee30b)
+ tidymodels   * 1.2.0      2024-03-25 [1] CRAN (R 4.4.0)
+ tidyr        * 1.3.1.9000 2024-10-11 [1] Github (tidyverse/tidyr@622afe8)
+ tidyselect     1.2.1      2024-03-11 [1] CRAN (R 4.4.0)
+ timechange     0.3.0      2024-01-18 [1] CRAN (R 4.4.0)
+ timeDate       4032.109   2023-12-14 [1] CRAN (R 4.4.0)
+ tune         * 1.2.1.9000 2024-10-11 [1] Github (tidymodels/tune@f8d734a)
+ utf8           1.2.4      2023-10-22 [1] CRAN (R 4.4.0)
+ vctrs          0.6.5      2023-12-01 [1] CRAN (R 4.4.0)
+ withr          3.0.1      2024-07-31 [1] CRAN (R 4.4.0)
+ workflows    * 1.1.4.9000 2024-10-10 [1] Github (tidymodels/workflows@78aa5df)
+ workflowsets * 1.1.0.9000 2024-10-11 [1] Github (tidymodels/workflowsets@38fbc88)
+ yardstick    * 1.3.1.9000 2024-10-11 [1] Github (tidymodels/yardstick@be744a3)
+
+ [1] /Users/max/Library/R/arm64/4.4/library
+ [2] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library
+
+──────────────────────────────────────────────────────────────────────────────
+> 
+> if (!interactive()) {
++   q("no")
++ }
+> proc.time()
+   user  system elapsed 
+151.075  33.564 122.914 

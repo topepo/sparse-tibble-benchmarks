@@ -4,7 +4,7 @@ With the [sparsevctrs](https://github.com/r-lib/sparsevctrs) package, tidymodels
 
 This repo houses benchmarks for models that accept sparse matrices. These will help us understand and explain where/if there are benefits to using sparse data encodings. 
 
-Currently, there are results for xgboost and glmnet classification models. 
+Currently, there are results for xgboost, ranger, and glmnet classification models. 
 
 The data sets: 
 
