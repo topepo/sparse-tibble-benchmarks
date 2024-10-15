@@ -33,7 +33,7 @@ Type 'q()' to quit R.
 ✖ ggplot2::is.element() masks base::is.element()
 ✖ dplyr::lag()          masks stats::lag()
 ✖ recipes::step()       masks stats::step()
-• Search for functions across packages at https://www.tidymodels.org/find/
+• Use suppressPackageStartupMessages() to eliminate package startup messages
 > library(bonsai)
 > library(sparsevctrs)
 > library(QSARdata)
@@ -82,9 +82,18 @@ Loading required package: bench
 +   ) %>%
 +   filter(ppid == worker_ppid | pid == worker_ppid)
 > 
-> mtr_dns <- xgb_mtr %>% mutate(encoding = "dense")
+> xgb_mtr_dns <- xgb_mtr %>% mutate(encoding = "dense")
 > 
-> save(xgb_prof_dns, analysis_time_dns, file = "xgb-caco/dense.RData")
+> xgb_time_dns <- 
++   analysis_time_dns %>% 
++   enframe() %>% 
++   mutate(
++     encoding = "dense",
++     model = "xgboost"
++   ) %>% 
++   filter(name == "elapsed")
+> 
+> save(xgb_prof_dns, xgb_time_dns, xgb_mtr_dns, file = "xgb-caco/dense.RData")
 > 
 > # ------------------------------------------------------------------------------
 > 
@@ -198,4 +207,4 @@ Loading required package: bench
 + }
 > proc.time()
     user   system  elapsed 
-7499.602 1715.102 6124.557 
+7458.150 1686.880 6112.662 
